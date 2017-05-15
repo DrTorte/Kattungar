@@ -8,8 +8,6 @@ function findPlayer(session) {
 }
 exports.findPlayer = findPlayer;
 function findGame(Id) {
-    console.log(Id);
-    console.log(exports.GameSessions);
     return exports.GameSessions.find(x => x.Id == Id);
 }
 exports.findGame = findGame;

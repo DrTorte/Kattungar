@@ -67,6 +67,76 @@ export class WsApp{
                             connection.send(JSON.stringify({sessionUpdate: view}));
                     }
 
+                } else if (result['type'] =="moveChar"){
+                    //result dir will decide direction.
+                    //need to have character of course.
+                    //but first,a s always, check player exists.
+                    let player = datastore.findPlayer(result['player']);
+                    if (player == null){
+                        error = {error: "Invalid player session."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //find the session.
+                    let session = datastore.findGame(result['gameId']);
+                    if (session == null){
+                        error = {error: "Invalid session."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //now that that's done, find the character.
+                    let character = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
+                    if (character == null){
+                        error = {error:"Invalid character."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //make sure there's enough action points.
+                    if (character.Stats.CurrentActionPoints < 1){
+                        error ={error:"Not enough AP."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //and make sure we're good to go and that there's nothing blocking the new location.
+                    let dir = result['direction'];
+                    let newPosition = {x: 0, y:0};
+                    newPosition.x = character.Position.x;
+                    newPosition.y = character.Position.y;
+                    if (dir == "Up"){
+                        newPosition.y--;
+                    } else if (dir == "Down"){
+                        newPosition.y++;
+                    } else if (dir == "Left"){
+                        newPosition.x--;
+                    } else if (dir =="Right"){
+                        newPosition.x++;
+                    }
+
+                    if (!session.Map.checkPos(newPosition.x, newPosition.y)){
+                        error = { error: "Location is blocked by terrain."},
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //finally, make sure no other character is there.
+                    if (session.Characters.find(x=>x.Position.x == newPosition.x && x.Position.y == newPosition.y) != null){
+                        error = { error: "Location is blocked by another character."},
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //and now, do it! Woo!
+
+                    character.Position = newPosition;
+                    character.Stats.CurrentActionPoints--;
+
+                    for (let c of session.Connections){
+                        c.send(JSON.stringify({characterUpdate: character}));
+                    }
                 }
                 else {
                     ws.send(JSON.stringify({message:"Invalid 'type' sent."}));

@@ -9,8 +9,6 @@ export function findPlayer(session: string) : any {
 }
 
 export function findGame(Id: number) : any{
-    console.log(Id);
-    console.log(GameSessions);
     return GameSessions.find(x=>x.Id == Id);
 }
 

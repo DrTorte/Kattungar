@@ -12,7 +12,10 @@ export class Session{
     Name: string;
     Map: Map;
     SelectedCharacter : Character;
-    
+
+    UpdateChar = function(text){
+        alert(text);
+    }
     constructor(){
 
     }

@@ -188,7 +188,6 @@ function userFound(found: boolean){
 function clearCookies(){
     document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
 }
-
 ws.onmessage = function(event){
     try {
         var wsData = JSON.parse(event.data)
@@ -196,6 +195,7 @@ ws.onmessage = function(event){
         addError("Invalid data received.");
         return;
     }
+    console.log(wsData);
     if (wsData['message']){
         console.log(wsData['message']);
     }
@@ -206,7 +206,7 @@ ws.onmessage = function(event){
     if (wsData['sessionUpdate']){
         datastore.updateSession(wsData['sessionUpdate'] as Session);
         //and hide the other views for now.
-        $(".container-fluid").hide();
+        $("#mainBody").hide();
         if(datastore.myGame.State == 2){
             let basicText = new PIXI.Text("Wiee!");
             basicText.x = 40;
@@ -267,6 +267,26 @@ ws.onmessage = function(event){
             renderer.stage.addChild(datastore.uiContainer.Name);
             renderer.stage.addChild(datastore.uiContainer.Description);
             renderer.stage.addChild(datastore.uiContainer.AP);
+
+            //easier to track stuff here, if we have the functions called within the main body. :)
+            datastore.uiContainer.Up.on("pointerdown", moveButton);
+            datastore.uiContainer.Left.on("pointerdown", moveButton);
+            datastore.uiContainer.Right.on("pointerdown", moveButton);
+            datastore.uiContainer.Down.on("pointerdown", moveButton);
+            renderer.stage.addChild(datastore.uiContainer.Up);
+            renderer.stage.addChild(datastore.uiContainer.Left);
+            renderer.stage.addChild(datastore.uiContainer.Right);
+            renderer.stage.addChild(datastore.uiContainer.Down);
+
+            datastore.uiContainer.AtkUp.on("pointerdown", atkButton);
+            datastore.uiContainer.AtkLeft.on("pointerdown", atkButton);
+            datastore.uiContainer.AtkRight.on("pointerdown", atkButton);
+            datastore.uiContainer.AtkDown.on("pointerdown", atkButton);
+            renderer.stage.addChild(datastore.uiContainer.AtkUp);
+            renderer.stage.addChild(datastore.uiContainer.AtkLeft);
+            renderer.stage.addChild(datastore.uiContainer.AtkRight);
+            renderer.stage.addChild(datastore.uiContainer.AtkDown);
+
         }
         if(datastore.myGame.State == 4){
             renderer.stage.removeChildren();
@@ -275,6 +295,17 @@ ws.onmessage = function(event){
             text.y = 250;
             renderer.stage.addChild(text);
         }
+    } else if (wsData['characterUpdate']){
+        //find the character.
+        let char = wsData['characterUpdate'];
+        let chars = datastore.myGame.Characters.find(x=>x.Id == char.Id);
+        chars.Position.x = char.Position.x;
+        chars.Position.y = char.Position.y;
+        chars.Sprite.position.set(chars.Position.x * 32, chars.Position.y * 32);
+        chars.Stats.CurrentActionPoints = char.Stats.CurrentActionPoints;
+        chars.Stats.Armor = char.Stats.Armor;
+        chars.Stats.Health = char.stats.Health;
+        console.log(chars);
     }
 }
 
@@ -305,4 +336,27 @@ function selectCharacter(e){
     datastore.myGame.SelectedCharacter = char;
     //show some ui info.
     datastore.uiContainer.update(char);
+}
+
+function moveButton(e){
+    //prep the message.
+    let sendData={
+        player: datastore.myUser.Session,
+        gameId: datastore.myGame.Id,
+        charId: datastore.myGame.SelectedCharacter.Id,
+        direction: this.text,
+        type: "moveChar"
+    }
+    ws.send(JSON.stringify({
+        player: datastore.myUser.Session,
+        gameId: datastore.myGame.Id,
+        charId: datastore.myGame.SelectedCharacter.Id,
+        direction: this.text,
+        type: "moveChar"
+    }));
+}
+
+function atkButton(e){
+    console.log(e);
+    console.log(this);
 }
