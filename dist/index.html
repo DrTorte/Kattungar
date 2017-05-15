@@ -1,0 +1,38 @@
+<head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script  src="https://code.jquery.com/jquery-3.2.1.min.js"  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="  crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.5.1/pixi.min.js"></script>
+    <script src="/scripts/bundle.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="col-md-12 row" id=messageList>
+        </div>
+        <div class="col-md-12 row">
+            <div id="loading">
+                Loading, keep your pants on...
+            </div>
+            <div id=showLogin class=col-md-12>
+                Enter your username below!
+                <form id="loginForm">
+                    <input id="loginUsername" class="form-control" placeholder="Username..." />
+                    <button type=submit class="btn btn-default" id=login>Login</button>
+                </form>
+            </div>
+            <div id="gameList" class="col-md-12">
+                <div class=list>
+                    
+                </div>
+                <form id="newGameForm">
+                    <input id="newGameName" class="form-control" placeholder="Name..." />
+                    <input id="newGamePrivate" type="checkbox" class="form-control"/>
+                    <button type=submit class='btn btn-default' id=createGame>Create!</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div id=canvas>
+
+    </div>
+</body>
