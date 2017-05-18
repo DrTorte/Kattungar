@@ -1,6 +1,7 @@
 import * as datastore from './modules/datastore'
 import {GameSession, GameSessionView } from './models/GameSession';
 import { Map } from './models/Map';
+import { Character} from './models/Character';
 
 const WebSocket = require('ws');
 export class WsApp{
@@ -16,7 +17,6 @@ export class WsApp{
     init(){
         this.wsServer.on('connection', function (ws){
             let error :object;
-            ws.send(JSON.stringify(datastore.Players));
             ws.on('message', function (data){
                 try {
                     var result = JSON.parse(data);
@@ -46,7 +46,10 @@ export class WsApp{
                         ws.send(JSON.stringify(error));
                         return;
                     }
+
                     gameSession.Players.push(player);
+                    //also add the WS connection to the player so we can keep track of it.
+                    player.Connections.push(ws);
                     gameSession.Connections.push(ws);
                     
                     ws.send(JSON.stringify({message: "Connected to game session " + gameSession['Id']}));
@@ -137,8 +140,96 @@ export class WsApp{
                     for (let c of session.Connections){
                         c.send(JSON.stringify({characterUpdate: character}));
                     }
-                }
-                else {
+                } else if (result['type'] =="attack"){
+                    //result dir will decide direction.
+                    //need to have character of course.
+                    //but first,a s always, check player exists.
+                    let player = datastore.findPlayer(result['player']);
+                    if (player == null){
+                        error = {error: "Invalid player session."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //find the session.
+                    let session = datastore.findGame(result['gameId']);
+                    if (session == null){
+                        error = {error: "Invalid session."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+
+                    //now that that's done, find the character.
+                    let character = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
+                    if (character == null){
+                        error = {error:"Invalid character."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    
+                    if (character.Stats.CurrentActionPoints <  character.Stats.AttackCost) {
+                        error = {error:"Not enough AP!"};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    let dir = result['direction'];
+                    dir = dir.toUpperCase();
+                    dir = dir.replace("ATK ", "");
+                    //using X and Y here will eventually allow for diagonal attacks too.
+                    let x = 0;
+                    let y = 0; 
+                    if (dir == "UP"){
+                        y = 1;
+                    } else if (dir == "DOWN"){
+                        y = -1;
+                    }
+                    if (dir == "LEFT"){
+                        x= -1;
+                    } else if (dir == "RIGHT"){
+                        x=1;
+                    }
+                    // a quick do while loop will do the trick. Starting from the player's position.
+                    let i = 0;
+                    var c : Character = new Character();
+                    do{
+                        i++;
+                        let projPosition = {x: 0, y:0};
+                        projPosition.x = character.Position.x;
+                        projPosition.y = character.Position.y;
+                        console.log(projPosition);
+                        //check for target.
+                        projPosition.x += x*i;
+                        projPosition.y += y*i;
+                        console.log(projPosition);
+                        try {
+                            c = session.findCharacter(projPosition);
+                            console.log(c);
+                            break;
+                        } catch(err){
+                            console.log('No target found at this location.');
+                        }
+                    } while(i < character.Stats.Range);
+                    if (c == undefined){
+                        ///Return at this PointerEvent.
+                        error = {error:"Invalid target character."};
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    
+                    //andn ow finally, do the calculations.
+                    character.Stats.CurrentActionPoints -= character.Stats.AttackCost;
+
+                    console.log(c);
+                    //send damage taken.
+                    c.takeDamage(character.Stats.Damage);
+                    var C = session.Characters.find(x=>x.Id == c.Id);
+                    for (let s of session.Connections){
+                        s.send(JSON.stringify({ characterUpdate: character}));
+                        s.send(JSON.stringify({characterUpdate: C}));
+                    }
+                    //and there we go. send updated chars.
+                    ws.send(JSON.stringify({}))
+                } else {
                     ws.send(JSON.stringify({message:"Invalid 'type' sent."}));
                 }
             });

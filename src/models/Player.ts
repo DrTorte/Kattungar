@@ -4,6 +4,7 @@ export class Player{
     Id: number;
     Username: string;
     Session: string;
+    Connections: WebSocket[] = [];
 
 //construct a player with a random session attached.
     constructor(name:string, id:number){
@@ -20,5 +21,17 @@ export class PlayerView{
     constructor(player : Player){
         this.Id = player.Id;
         this.Username = player.Username;
+    }
+}
+
+//this shows the session, but should only be called for itself.
+export class PlayerSelfView{
+    Id: number;
+    Username: string;
+    Session: string;
+    constructor(player : Player){
+        this.Id = player.Id;
+        this.Username = player.Username;
+        this.Session = player.Session;
     }
 }

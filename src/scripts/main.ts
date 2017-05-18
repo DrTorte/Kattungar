@@ -2,15 +2,12 @@ import { User } from './user';
 import { Session } from './session';
 import { Character } from './character';
 import * as datastore from './datastore';
+import * as graphics from './graphics';
+
 import * as PIXI from 'pixi.js';
 
-let renderer = new PIXI.Application(window.innerWidth,window.innerHeight, {backgroundColor: 0x1099bb});
-let stage = new PIXI.Container();
-
 //get current page, minus http://, to connect accordingly.
-let url = window.location.hostname;
-let ws = new WebSocket("ws://" + url  + ":8080");
-ws.onopen = function (event){
+datastore.ws.onopen = function (event){
     //if we want to do something when connecting...
 }
 
@@ -80,15 +77,18 @@ $(document).ready(function(e){
     $("#gameList").on("click", '.joinGame',function(e){
         joinGame($(e.target).attr("data-id"));
     });
+
+    //and now, initialize all components.
+    graphics.init();
 });
 
 window.onresize = function(){
-    renderer.view.style.width = window.innerWidth + "px";
-    renderer.view.style.height = window.innerHeight + "px";
+    graphics.renderer.view.style.width = window.innerWidth + "px";
+    graphics.renderer.view.style.height = window.innerHeight + "px";
 }
 
 function joinGame(gameId:any){
-    ws.send(JSON.stringify({
+    datastore.ws.send(JSON.stringify({
         player: datastore.myUser.Session,
         gameId: gameId,
         type: "joinSession"
@@ -188,7 +188,7 @@ function userFound(found: boolean){
 function clearCookies(){
     document.cookie.split(";").forEach(function(c) { document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
 }
-ws.onmessage = function(event){
+datastore.ws.onmessage = function(event){
     try {
         var wsData = JSON.parse(event.data)
     } catch(err){
@@ -197,10 +197,10 @@ ws.onmessage = function(event){
     }
     console.log(wsData);
     if (wsData['message']){
-        console.log(wsData['message']);
+        graphics.addMessage(wsData['message']);
     }
     if (wsData['error']){
-        addError(wsData['error']);
+        graphics.addMessage(wsData['error']);
         return;
     }
     if (wsData['sessionUpdate']){
@@ -212,7 +212,7 @@ ws.onmessage = function(event){
             basicText.x = 40;
             basicText.y = 40;
             //wipe out current.
-            renderer.stage.removeChildren();
+            graphics.renderer.stage.removeChildren();
 
             //add the map.
             datastore.myGame.Map.Terrain.forEach(element => {
@@ -224,21 +224,21 @@ ws.onmessage = function(event){
                 }
                 item.x = element.X*32;
                 item.y = element.Y*32;
-                renderer.stage.addChild(item);
+                graphics.renderer.stage.addChild(item);
             });
 
             //draw some text jsut to the right.
             let text : PIXI.Text = new PIXI.Text("Players:");
             text.x = 1056;
             text.y = 32;
-            renderer.stage.addChild(text)
+            graphics.renderer.stage.addChild(text)
 
             let y = 64;
             for (var p of datastore.myGame.Players){
                 text = new PIXI.Text(p.Username);
                 text.x = 1056;
                 text.y = y;
-                renderer.stage.addChild(text);
+                graphics.renderer.stage.addChild(text);
                 y += 32;
             }
 
@@ -259,60 +259,62 @@ ws.onmessage = function(event){
                 item.buttonMode = true;
 
                 item.on('pointerdown', selectCharacter);
-                renderer.stage.addChild(item);
+                graphics.renderer.stage.addChild(item);
                 c.Sprite = item;
             }
 
             //draw some UI, too!
-            renderer.stage.addChild(datastore.uiContainer.Name);
-            renderer.stage.addChild(datastore.uiContainer.Description);
-            renderer.stage.addChild(datastore.uiContainer.AP);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Name);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Description);
+            graphics.renderer.stage.addChild(datastore.uiContainer.AP);
 
             //easier to track stuff here, if we have the functions called within the main body. :)
             datastore.uiContainer.Up.on("pointerdown", moveButton);
             datastore.uiContainer.Left.on("pointerdown", moveButton);
             datastore.uiContainer.Right.on("pointerdown", moveButton);
             datastore.uiContainer.Down.on("pointerdown", moveButton);
-            renderer.stage.addChild(datastore.uiContainer.Up);
-            renderer.stage.addChild(datastore.uiContainer.Left);
-            renderer.stage.addChild(datastore.uiContainer.Right);
-            renderer.stage.addChild(datastore.uiContainer.Down);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Up);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Left);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Right);
+            graphics.renderer.stage.addChild(datastore.uiContainer.Down);
 
             datastore.uiContainer.AtkUp.on("pointerdown", atkButton);
             datastore.uiContainer.AtkLeft.on("pointerdown", atkButton);
             datastore.uiContainer.AtkRight.on("pointerdown", atkButton);
             datastore.uiContainer.AtkDown.on("pointerdown", atkButton);
-            renderer.stage.addChild(datastore.uiContainer.AtkUp);
-            renderer.stage.addChild(datastore.uiContainer.AtkLeft);
-            renderer.stage.addChild(datastore.uiContainer.AtkRight);
-            renderer.stage.addChild(datastore.uiContainer.AtkDown);
+            graphics.renderer.stage.addChild(datastore.uiContainer.AtkUp);
+            graphics.renderer.stage.addChild(datastore.uiContainer.AtkLeft);
+            graphics.renderer.stage.addChild(datastore.uiContainer.AtkRight);
+            graphics.renderer.stage.addChild(datastore.uiContainer.AtkDown);
 
         }
         if(datastore.myGame.State == 4){
-            renderer.stage.removeChildren();
+            graphics.renderer.stage.removeChildren();
             let text : PIXI.Text = new PIXI.Text("You win! Yay! Now refresh the page.");
             text.x = 500;
             text.y = 250;
-            renderer.stage.addChild(text);
+            graphics.renderer.stage.addChild(text);
         }
     } else if (wsData['characterUpdate']){
         //find the character.
         let char = wsData['characterUpdate'];
         let chars = datastore.myGame.Characters.find(x=>x.Id == char.Id);
+        console.log("char update. Old then New:");        
+        console.dir(chars);
+        console.dir(char);
         chars.Position.x = char.Position.x;
         chars.Position.y = char.Position.y;
         chars.Sprite.position.set(chars.Position.x * 32, chars.Position.y * 32);
         chars.Stats.CurrentActionPoints = char.Stats.CurrentActionPoints;
         chars.Stats.Armor = char.Stats.Armor;
-        chars.Stats.Health = char.stats.Health;
-        console.log(chars);
+        chars.Stats.Health = char.Stats.Health;
     }
 }
 
 /* game logic below here. */
 
 function prepGame(){
-    $("#canvas").append(renderer.view);
+    $("#canvas").append(graphics.renderer.view);
     datastore.addSprite("Floor", PIXI.Texture.fromImage('/assets/floor.png'));
     datastore.addSprite("Wall", PIXI.Texture.fromImage('/assets/wall.png'));
     datastore.addSprite("Ghoul", PIXI.Texture.fromImage('/assets/ghoul.png'));
@@ -324,7 +326,7 @@ function prepGame(){
     let basicText = new PIXI.Text("Awaiting other player...");
     basicText.x = 30;
     basicText.y = 30;
-    renderer.stage.addChild(basicText);
+    graphics.renderer.stage.addChild(basicText);
 }
 
 function selectCharacter(e){
@@ -347,16 +349,15 @@ function moveButton(e){
         direction: this.text,
         type: "moveChar"
     }
-    ws.send(JSON.stringify({
+    datastore.ws.send(JSON.stringify(sendData));
+}
+function atkButton(e){
+    let sendData={
         player: datastore.myUser.Session,
         gameId: datastore.myGame.Id,
         charId: datastore.myGame.SelectedCharacter.Id,
         direction: this.text,
-        type: "moveChar"
-    }));
-}
-
-function atkButton(e){
-    console.log(e);
-    console.log(this);
+        type: "attack"
+    }
+    datastore.ws.send(JSON.stringify(sendData));
 }

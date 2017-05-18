@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction} from 'express';
-import { Player, PlayerView } from '../models/player';
+import { Player, PlayerView, PlayerSelfView } from '../models/player';
 import * as datastore from '../modules/datastore';
 
 let Id: number = 1;
@@ -26,7 +26,7 @@ export class PlayerRouter{
             return;
         }
 
-        res.send(200, thisPlayer);
+        res.send(200, new PlayerSelfView(thisPlayer) );
     }
 
     public getSpecificPlayer(req: Request, res: Response, next: NextFunction){

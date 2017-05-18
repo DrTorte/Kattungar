@@ -22,7 +22,7 @@ class PlayerRouter {
             res.status(401).send("No player found.");
             return;
         }
-        res.send(200, thisPlayer);
+        res.send(200, new player_1.PlayerSelfView(thisPlayer));
     }
     getSpecificPlayer(req, res, next) {
         let searchParam = req.params.name;

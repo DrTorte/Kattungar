@@ -3,6 +3,11 @@ import { Session } from './session';
 import { Character } from './character';
 //another datastore module! Woo!
 
+//store all the websocket and pixi stuff here.
+export let url = window.location.hostname;
+export let ws = new WebSocket("ws://" + url  + ":8080");
+
+
 export class Datastore {
 
 }

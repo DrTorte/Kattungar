@@ -47,4 +47,15 @@ export class Character {
         this.Stats.CurrentActionPoints = this.Stats.FreshActionPoints;
         this.Stats.Health = this.Stats.MaxHealth;
     }
+
+    public takeDamage(dmg: number){
+            //reduce damage with armor.
+            dmg -= this.Stats.Armor;
+            // dice throw here, eventually!
+            this.Stats.Health -= dmg;
+            if (this.Stats.Health < 0){
+                //oh no! character is dead!
+                this.Stats.die();
+            }
+    }
 }

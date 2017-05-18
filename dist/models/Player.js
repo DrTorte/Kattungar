@@ -5,6 +5,7 @@ var randomstring = require("randomstring");
 class Player {
     //construct a player with a random session attached.
     constructor(name, id) {
+        this.Connections = [];
         this.Username = name;
         this.Session = randomstring.generate();
         this.Id = id;
@@ -19,3 +20,12 @@ class PlayerView {
     }
 }
 exports.PlayerView = PlayerView;
+//this shows the session, but should only be called for itself.
+class PlayerSelfView {
+    constructor(player) {
+        this.Id = player.Id;
+        this.Username = player.Username;
+        this.Session = player.Session;
+    }
+}
+exports.PlayerSelfView = PlayerSelfView;

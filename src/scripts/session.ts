@@ -13,9 +13,6 @@ export class Session{
     Map: Map;
     SelectedCharacter : Character;
 
-    UpdateChar = function(text){
-        alert(text);
-    }
     constructor(){
 
     }

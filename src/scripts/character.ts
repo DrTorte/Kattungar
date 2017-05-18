@@ -12,7 +12,7 @@ export class Character {
         y: number
     } = {x: 0, y: 0};
 
-    Stats: Stats;
+    Stats: Stats = new Stats();
 
     Sprite: PIXI.Sprite;
 }

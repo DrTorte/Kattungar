@@ -42,5 +42,15 @@ class Character {
         this.Stats.CurrentActionPoints = this.Stats.FreshActionPoints;
         this.Stats.Health = this.Stats.MaxHealth;
     }
+    takeDamage(dmg) {
+        //reduce damage with armor.
+        dmg -= this.Stats.Armor;
+        // dice throw here, eventually!
+        this.Stats.Health -= dmg;
+        if (this.Stats.Health < 0) {
+            //oh no! character is dead!
+            this.Stats.die();
+        }
+    }
 }
 exports.Character = Character;
