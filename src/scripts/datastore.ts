@@ -105,22 +105,6 @@ export class UIContainer{
         this.AtkDown.y = y;
         this.AtkDown.x = x;
     }
-
-    public update(char: Character){
-        this.Name.text = char.Name;
-        this.Description.text = char.Description;
-        this.AP.text = String(char.Stats.CurrentActionPoints) + " / " + String(char.Stats.FreshActionPoints);
-
-        this.Up.visible = char.Owner == myUser.Id;
-        this.Down.visible = char.Owner == myUser.Id;
-        this.Right.visible = char.Owner == myUser.Id;
-        this.Left.visible = char.Owner == myUser.Id;
-
-        this.AtkUp.visible = char.Owner == myUser.Id;
-        this.AtkDown.visible = char.Owner == myUser.Id;
-        this.AtkRight.visible = char.Owner == myUser.Id;
-        this.AtkLeft.visible = char.Owner == myUser.Id;
-    }
 }
 
 export let gameSessions : Session[] = [];

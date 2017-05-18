@@ -3,6 +3,7 @@ import { Session } from './session';
 import { Character } from './character';
 import * as datastore from './datastore';
 import * as graphics from './graphics';
+import * as gameLogic from './gamelogic';
 
 import * as PIXI from 'pixi.js';
 
@@ -83,8 +84,7 @@ $(document).ready(function(e){
 });
 
 window.onresize = function(){
-    graphics.renderer.view.style.width = window.innerWidth + "px";
-    graphics.renderer.view.style.height = window.innerHeight + "px";
+    //todo: add proper resize.
 }
 
 function joinGame(gameId:any){
@@ -215,17 +215,7 @@ datastore.ws.onmessage = function(event){
             graphics.renderer.stage.removeChildren();
 
             //add the map.
-            datastore.myGame.Map.Terrain.forEach(element => {
-                let item : PIXI.Sprite = new PIXI.Sprite();
-                if(element.Terrain == 0){
-                    item = new PIXI.Sprite(datastore.sprites[0].Sprite);
-                } else {
-                    item = new PIXI.Sprite(datastore.sprites[1].Sprite);
-                }
-                item.x = element.X*32;
-                item.y = element.Y*32;
-                graphics.renderer.stage.addChild(item);
-            });
+
 
             //draw some text jsut to the right.
             let text : PIXI.Text = new PIXI.Text("Players:");
@@ -242,50 +232,12 @@ datastore.ws.onmessage = function(event){
                 y += 32;
             }
 
-            //draw some characters.
-            for (let c of datastore.myGame.Characters){
-                console.log(c);
-                let item : PIXI.Sprite = new PIXI.Sprite();
-                try {
-                    item = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == c.Name).Sprite);
-                } catch(err) {
-                    continue; //ignore it if we have to.
-                }
-                item.x = c.Position.x * 32;
-                item.y = c.Position.y * 32;
 
-                //make this interactive!
-                item.interactive = true;
-                item.buttonMode = true;
+            graphics.drawTerrain();
+            
+            graphics.drawCharacters();
 
-                item.on('pointerdown', selectCharacter);
-                graphics.renderer.stage.addChild(item);
-                c.Sprite = item;
-            }
-
-            //draw some UI, too!
-            graphics.renderer.stage.addChild(datastore.uiContainer.Name);
-            graphics.renderer.stage.addChild(datastore.uiContainer.Description);
-            graphics.renderer.stage.addChild(datastore.uiContainer.AP);
-
-            //easier to track stuff here, if we have the functions called within the main body. :)
-            datastore.uiContainer.Up.on("pointerdown", moveButton);
-            datastore.uiContainer.Left.on("pointerdown", moveButton);
-            datastore.uiContainer.Right.on("pointerdown", moveButton);
-            datastore.uiContainer.Down.on("pointerdown", moveButton);
-            graphics.renderer.stage.addChild(datastore.uiContainer.Up);
-            graphics.renderer.stage.addChild(datastore.uiContainer.Left);
-            graphics.renderer.stage.addChild(datastore.uiContainer.Right);
-            graphics.renderer.stage.addChild(datastore.uiContainer.Down);
-
-            datastore.uiContainer.AtkUp.on("pointerdown", atkButton);
-            datastore.uiContainer.AtkLeft.on("pointerdown", atkButton);
-            datastore.uiContainer.AtkRight.on("pointerdown", atkButton);
-            datastore.uiContainer.AtkDown.on("pointerdown", atkButton);
-            graphics.renderer.stage.addChild(datastore.uiContainer.AtkUp);
-            graphics.renderer.stage.addChild(datastore.uiContainer.AtkLeft);
-            graphics.renderer.stage.addChild(datastore.uiContainer.AtkRight);
-            graphics.renderer.stage.addChild(datastore.uiContainer.AtkDown);
+            graphics.drawUI();
 
         }
         if(datastore.myGame.State == 4){
@@ -297,17 +249,8 @@ datastore.ws.onmessage = function(event){
         }
     } else if (wsData['characterUpdate']){
         //find the character.
-        let char = wsData['characterUpdate'];
-        let chars = datastore.myGame.Characters.find(x=>x.Id == char.Id);
-        console.log("char update. Old then New:");        
-        console.dir(chars);
-        console.dir(char);
-        chars.Position.x = char.Position.x;
-        chars.Position.y = char.Position.y;
-        chars.Sprite.position.set(chars.Position.x * 32, chars.Position.y * 32);
-        chars.Stats.CurrentActionPoints = char.Stats.CurrentActionPoints;
-        chars.Stats.Armor = char.Stats.Armor;
-        chars.Stats.Health = char.Stats.Health;
+        let char = wsData['characterUpdate'] as Character;
+        gameLogic.updateCharacter(char);
     }
 }
 
@@ -327,37 +270,4 @@ function prepGame(){
     basicText.x = 30;
     basicText.y = 30;
     graphics.renderer.stage.addChild(basicText);
-}
-
-function selectCharacter(e){
-    //find the character.
-    let char = datastore.myGame.Characters.find(x=>x.Sprite == this);
-    if (char == null){
-        return;
-    }
-    datastore.myGame.SelectedCharacter = char;
-    //show some ui info.
-    datastore.uiContainer.update(char);
-}
-
-function moveButton(e){
-    //prep the message.
-    let sendData={
-        player: datastore.myUser.Session,
-        gameId: datastore.myGame.Id,
-        charId: datastore.myGame.SelectedCharacter.Id,
-        direction: this.text,
-        type: "moveChar"
-    }
-    datastore.ws.send(JSON.stringify(sendData));
-}
-function atkButton(e){
-    let sendData={
-        player: datastore.myUser.Session,
-        gameId: datastore.myGame.Id,
-        charId: datastore.myGame.SelectedCharacter.Id,
-        direction: this.text,
-        type: "attack"
-    }
-    datastore.ws.send(JSON.stringify(sendData));
 }
