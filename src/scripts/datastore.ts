@@ -2,8 +2,10 @@ import { User } from './user';
 import { Session } from './session';
 import { Character } from './character';
 //another datastore module! Woo!
+import * as graphics from './graphics';
 
-//store all the websocket and pixi stuff here.
+//store all the websocket stuff here.
+
 export let url = window.location.hostname;
 export let ws = new WebSocket("ws://" + url  + ":8080");
 
@@ -25,6 +27,11 @@ export class UIContainer{
     AtkLeft: PIXI.Text = new PIXI.Text("Atk Left");
     AtkRight: PIXI.Text = new PIXI.Text("Atk Right");
     AtkDown: PIXI.Text = new PIXI.Text("Atk Down");
+
+    Selector: PIXI.Sprite;
+    Selected: PIXI.Sprite;
+
+    LoadingTicker : any;
 
     constructor(){
         //set y to 544 to start.
@@ -126,6 +133,7 @@ export function updateSessions(sessions: Session[]){
     });
 }
 
+//update session value here.
 export function updateSession(session: Session){
     myGame = session;
 }

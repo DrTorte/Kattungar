@@ -79,6 +79,10 @@ $(document).ready(function(e){
         joinGame($(e.target).attr("data-id"));
     });
 
+    $("#refreshGames").click(function(e){
+        updateGames();
+    });
+
     //and now, initialize all components.
     graphics.init();
 });
@@ -234,7 +238,7 @@ datastore.ws.onmessage = function(event){
 
 
             graphics.drawTerrain();
-            
+
             graphics.drawCharacters();
 
             graphics.drawUI();
@@ -264,6 +268,7 @@ function prepGame(){
     datastore.addSprite("Human", PIXI.Texture.fromImage('/assets/human.png'));
     datastore.addSprite("Orc", PIXI.Texture.fromImage('/assets/orc.png'));
     datastore.addSprite("Troll", PIXI.Texture.fromImage('/assets/troll.png'));
+    datastore.addSprite("UI_selector", PIXI.Texture.fromImage('/assets/ui/select.png'));
 
     //add "loading text"
     let basicText = new PIXI.Text("Awaiting other player...");

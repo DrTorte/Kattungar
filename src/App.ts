@@ -39,6 +39,11 @@ class App{
             res.sendFile("assets/" + req.params.file, { root:__dirname})
         });
 
+        router.get('/assets/ui/:file', (req,res,next) =>{
+            res.sendFile("assets/ui/" + req.params.file, { root:__dirname})
+        });
+
+
         this.express.use('/', router);
         this.express.use('/api/v1/player', PlayerRouter);
         this.express.use('/api/v1/gamesession', GameRouter);

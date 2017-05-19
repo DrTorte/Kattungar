@@ -92,6 +92,18 @@ export function drawUI(){
     renderer.stage.addChild(datastore.uiContainer.AtkLeft);
     renderer.stage.addChild(datastore.uiContainer.AtkRight);
     renderer.stage.addChild(datastore.uiContainer.AtkDown);
+//generate the Selector as well. Maybe more later.
+
+    datastore.uiContainer.Selected = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == "UI_selector").Sprite);
+    datastore.uiContainer.Selected.visible = false;
+    datastore.uiContainer.Selected.tint= 0x7af5f5;
+    datastore.uiContainer.Selected.alpha = 0.5;
+    renderer.stage.addChild(datastore.uiContainer.Selected);
+
+    datastore.uiContainer.Selector = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == "UI_selector").Sprite);
+    datastore.uiContainer.Selector.visible = false;
+    datastore.uiContainer.Selector.alpha = 0.5;
+    renderer.stage.addChild(datastore.uiContainer.Selector);
 }
 
 //update the UI. Primarily called when selecting a character.
@@ -115,6 +127,10 @@ export function updateUI(char: Character = null){
         datastore.uiContainer.AtkDown.visible = char.Owner == datastore.myUser.Id;
         datastore.uiContainer.AtkRight.visible = char.Owner == datastore.myUser.Id;
         datastore.uiContainer.AtkLeft.visible = char.Owner == datastore.myUser.Id;
+
+        //move the selected icon to this character.
+        datastore.uiContainer.Selected.visible = true;
+        datastore.uiContainer.Selected.position = char.Sprite.position;
     }
 }
 
@@ -134,6 +150,22 @@ export function drawCharacters(){
         //make this interactive!
         item.interactive = true;
         item.buttonMode = true;
+
+        item.on("mouseover", function(e){
+            //hover over selected.
+            datastore.uiContainer.Selector.position = item.position;
+            datastore.uiContainer.Selector.visible = true;
+            //if friendly, hover green. If enemy, hover red.
+            if (c.Owner == datastore.myUser.Id){
+                datastore.uiContainer.Selector.tint = 0x00dd00;
+            } else {
+                datastore.uiContainer.Selector.tint = 0xdd0000;
+            }
+        });
+        item.on("mouseout", function(e){
+           //remove selected.
+           datastore.uiContainer.Selector.visible = false;
+        });
 
         item.on('pointerdown', gameLogic.selectCharacter);
         renderer.stage.addChild(item);

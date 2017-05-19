@@ -28,6 +28,9 @@ class App {
         router.get('/assets/:file', (req, res, next) => {
             res.sendFile("assets/" + req.params.file, { root: __dirname });
         });
+        router.get('/assets/ui/:file', (req, res, next) => {
+            res.sendFile("assets/ui/" + req.params.file, { root: __dirname });
+        });
         this.express.use('/', router);
         this.express.use('/api/v1/player', PlayerRouter_1.default);
         this.express.use('/api/v1/gamesession', GameRouter_1.default);
