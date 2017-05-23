@@ -88,8 +88,8 @@ export class GameSession{
     public findCharacter(position : {x,y}, player?) {
         //if player is not specified, it is not a factor.
         for (let c of this.Characters){
-            console.dir(c.Position.x + " " + position.x);
-            console.dir(c.Position.y + " " + position.y);
+            console.log("X: " + c.Position.x + " Y: " + position.x);
+            console.log("X: " + c.Position.y + " Y: " + position.y);
             if (c.Position.x == position.x && c.Position.y == position.y){
                 console.log(c);
                 return c;

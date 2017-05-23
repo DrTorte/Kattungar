@@ -90,7 +90,7 @@ export class WsApp{
                     }
 
                     //now that that's done, find the character.
-                    let character = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
+                    let character : Character | null = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
                     if (character == null){
                         error = {error:"Invalid character."};
                         ws.send(JSON.stringify(error));
@@ -160,7 +160,7 @@ export class WsApp{
                     }
 
                     //now that that's done, find the character.
-                    let character = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
+                    let character : Character | null = session.Characters.find(x=>x.Id == result['charId'] && x.Owner == player.Id);
                     if (character == null){
                         error = {error:"Invalid character."};
                         ws.send(JSON.stringify(error));
@@ -179,9 +179,9 @@ export class WsApp{
                     let x = 0;
                     let y = 0; 
                     if (dir == "UP"){
-                        y = 1;
-                    } else if (dir == "DOWN"){
                         y = -1;
+                    } else if (dir == "DOWN"){
+                        y = 1;
                     }
                     if (dir == "LEFT"){
                         x= -1;
@@ -190,45 +190,39 @@ export class WsApp{
                     }
                     // a quick do while loop will do the trick. Starting from the player's position.
                     let i = 0;
-                    var c : Character = new Character();
+                    var c : Character | null = null;
                     do{
                         i++;
                         let projPosition = {x: 0, y:0};
                         projPosition.x = character.Position.x;
                         projPosition.y = character.Position.y;
-                        console.log(projPosition);
                         //check for target.
                         projPosition.x += x*i;
                         projPosition.y += y*i;
-                        console.log(projPosition);
-                        try {
-                            c = session.findCharacter(projPosition);
-                            console.log(c);
-                            break;
-                        } catch(err){
-                            console.log('No target found at this location.');
-                        }
-                    } while(i < character.Stats.Range);
-                    if (c == undefined){
-                        ///Return at this PointerEvent.
-                        error = {error:"Invalid target character."};
+                        c = session.findCharacter(projPosition);
+
+                    } while(c == null && i < character.Stats.Range);
+
+                    //no target found, or just the samep layer.
+                    if (c == null || c.Owner == character.Owner ){
+                        ///Return at this point, as no target was found.
+                        error = {error:"No target found."};
                         ws.send(JSON.stringify(error));
                         return;
-                    }
-                    
-                    //andn ow finally, do the calculations.
-                    character.Stats.CurrentActionPoints -= character.Stats.AttackCost;
+                    } else {
+                        
+                        //and now finally, do the calculations.
+                        character.Stats.CurrentActionPoints -= character.Stats.AttackCost;
 
-                    console.log(c);
-                    //send damage taken.
-                    c.takeDamage(character.Stats.Damage);
-                    var C = session.Characters.find(x=>x.Id == c.Id);
-                    for (let s of session.Connections){
-                        s.send(JSON.stringify({ characterUpdate: character}));
-                        s.send(JSON.stringify({characterUpdate: C}));
+                        //send damage taken and updated characters.
+                        c.takeDamage(character.Stats.Damage);
+                        for (let s of session.Connections){
+                            s.send(JSON.stringify({effect: "Hit", targetChar: c}));
+                            s.send(JSON.stringify({characterUpdate: character}));
+                            s.send(JSON.stringify({characterUpdate: c}));
+                        }
+                        
                     }
-                    //and there we go. send updated chars.
-                    ws.send(JSON.stringify({}))
                 } else {
                     ws.send(JSON.stringify({message:"Invalid 'type' sent."}));
                 }

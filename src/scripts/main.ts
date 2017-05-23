@@ -212,14 +212,8 @@ datastore.ws.onmessage = function(event){
         //and hide the other views for now.
         $("#mainBody").hide();
         if(datastore.myGame.State == 2){
-            let basicText = new PIXI.Text("Wiee!");
-            basicText.x = 40;
-            basicText.y = 40;
             //wipe out current.
             graphics.renderer.stage.removeChildren();
-
-            //add the map.
-
 
             //draw some text jsut to the right.
             let text : PIXI.Text = new PIXI.Text("Players:");
@@ -251,10 +245,23 @@ datastore.ws.onmessage = function(event){
             text.y = 250;
             graphics.renderer.stage.addChild(text);
         }
-    } else if (wsData['characterUpdate']){
+    } 
+
+    if (wsData['characterUpdate']){
         //find the character.
         let char = wsData['characterUpdate'] as Character;
         gameLogic.updateCharacter(char);
+    } 
+    
+    if (wsData['effect']){
+        let targetPosition:{x:number, y:number};
+        // draw the effect at the target, by determining if there is a hard location coded, or
+        // based on character location.
+        if (wsData['targetChar']){
+            graphics.addEffect(wsData['effect'], null, wsData['targetChar'] as Character, null );
+        } else if (wsData['targetPosition']){
+            graphics.addEffect(wsData['effect'], null, null, wsData['targetPosition'] );
+        }
     }
 }
 
@@ -269,6 +276,7 @@ function prepGame(){
     datastore.addSprite("Orc", PIXI.Texture.fromImage('/assets/orc.png'));
     datastore.addSprite("Troll", PIXI.Texture.fromImage('/assets/troll.png'));
     datastore.addSprite("UI_selector", PIXI.Texture.fromImage('/assets/ui/select.png'));
+    datastore.addSprite("Hit", PIXI.Texture.fromImage('/assets/ui/slash.png'));
 
     //add "loading text"
     let basicText = new PIXI.Text("Awaiting other player...");

@@ -1,6 +1,7 @@
 import { User } from './user';
 import { Session } from './session';
 import { Character } from './character';
+import { EffectStyle } from './effectStyle';
 import * as datastore from './datastore';
 import * as graphics from './graphics';
 
@@ -24,10 +25,25 @@ export function updateCharacter(char:Character){
     chara.Position.y = char.Position.y;
     chara.Stats.CurrentActionPoints = char.Stats.CurrentActionPoints;
     chara.Stats.Armor = char.Stats.Armor;
-    chara.Stats.Health = char.Stats.Health;
 
     //now updated the applicable graphics.
     chara.Sprite.position.set(chara.Position.x * 32, chara.Position.y * 32);
+
+    //if hp is altered, display that as such.
+    if (chara.Stats.Health != char.Stats.Health){
+        //floating effect.
+        let style = new EffectStyle();
+        style.Velocity = { x: 0, y:-1};
+        style.Acceleration = { x:0, y:-.2};
+        style.Lifespan = 180;
+        style.ColorStart = 0xee0000;
+
+        //since I want to be able to push multiple styles at once...
+        let styles: EffectStyle[] = [];
+        styles.push(style);
+        graphics.addEffect(null, String(char.Stats.Health - chara.Stats.Health), chara, null, styles);
+    }
+    chara.Stats.Health = char.Stats.Health;
 
     //if selected, update selected character too.
     if (isSelected){

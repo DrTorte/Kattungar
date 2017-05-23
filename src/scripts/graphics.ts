@@ -2,6 +2,7 @@
 import { User } from './user';
 import { Session } from './session';
 import { Character } from './character';
+import { EffectStyle} from './effectStyle';
 
 import * as gameLogic from './gameLogic';
 import * as datastore from './datastore';
@@ -11,6 +12,7 @@ export let renderer = new PIXI.Application(1600,900, {backgroundColor: 0x1099bb}
 export let stage = new PIXI.Container();
 
 export let messages : DisplayMessage[] = [];
+export let effects : Effect[] = [];
 
 export class Graphics{
 }
@@ -35,6 +37,8 @@ export function init(){
     renderer.ticker.add(function(delta){
         messages.forEach((m, key) => {
             m.Lifespan -= delta;
+            //set alpha to less than 1, when applicable.
+            m.Message.alpha = Math.min(m.Lifespan/60, 1);
             if (m.Lifespan < 0){
                 //remove it from the list.
                 renderer.stage.removeChild(m.Message);
@@ -44,6 +48,42 @@ export function init(){
                     messages[i].Message.y -= 32;
                 }
             }
+        });
+        effects.forEach((e, key) =>{
+            e.Lifespan -= delta;
+            e.Effect.alpha = Math.min(e.Lifespan/60,1); //general rule. fix later.
+            if (e.Lifespan <0){
+                renderer.stage.removeChild(e.Effect);
+                effects.splice(key,1);
+            }
+            e.Styles.forEach((f, fkey) =>{
+                if (f.Delay > 0){
+                    f.Delay-= delta;
+                }
+                if (f.Delay == null || f.Delay <= 0){
+                    if (f.Acceleration != null){
+                        f.Velocity.x += f.Acceleration.x;
+                        f.Velocity.y += f.Acceleration.y;
+                    }
+                    if (f.Velocity != null){
+                        e.Effect.position.x += f.Velocity.x;
+                        e.Effect.position.y += f.Velocity.y;
+                    }
+                    if (f.ColorStart != null){
+                        e.Effect.tint = f.ColorStart;
+                        //check if it's a text item.
+                        if(e.type() == "text"){
+                            let t = e as TextEffect;
+                            t.Effect.style = new PIXI.TextStyle({fill: f.ColorStart});
+                        }   
+                    }
+                    f.Lifespan-= delta;
+                }
+                //and kill if not needed.
+                if (f.Lifespan <= 0){
+                    e.Styles.splice(fkey, 1);
+                }
+            });
         });
     });
 }
@@ -92,7 +132,7 @@ export function drawUI(){
     renderer.stage.addChild(datastore.uiContainer.AtkLeft);
     renderer.stage.addChild(datastore.uiContainer.AtkRight);
     renderer.stage.addChild(datastore.uiContainer.AtkDown);
-//generate the Selector as well. Maybe more later.
+    //generate the Selector as well. Maybe more later.
 
     datastore.uiContainer.Selected = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == "UI_selector").Sprite);
     datastore.uiContainer.Selected.visible = false;
@@ -171,4 +211,100 @@ export function drawCharacters(){
         renderer.stage.addChild(item);
         c.Sprite = item;
     }
+}
+
+export class Effect{
+    Effect : PIXI.Sprite;
+    Lifespan: number =180;
+    Styles: EffectStyle[] = [];
+    StartPosition : {x:number, y:number};
+
+    constructor(position:{x:number,y:number}){
+        this.StartPosition = position; //always require a position be set.
+    }
+
+    public addEffect(name: string){
+        let sprite = datastore.sprites.find(x=>x.Name == name);
+        this.Effect = new PIXI.Sprite(sprite.Sprite);
+    }
+
+    public addStyle(velocity: {x:number,y:number} = null, acceleration: {x:number, y:number} = null, 
+        delay: number = null, lifespan: number = null, startColor: number = null, endColor:number = null){
+            //anything that's null is ignored.
+            let style = new EffectStyle();
+            style.Acceleration = acceleration;
+            style.Delay = delay;
+            style.ColorEnd = endColor;
+            style.ColorStart = startColor;
+            style.Lifespan = lifespan;
+            style.Velocity = velocity;
+
+            this.Styles.push(style);
+    }
+
+    //return the type.
+    public type() : string{
+        return "effect";
+    }
+
+    public render(){
+        //simply add to renderer.
+        this.Effect.position.x = this.StartPosition.x;
+        this.Effect.position.y = this.StartPosition.y;
+        renderer.stage.addChild(this.Effect);
+    }
+}
+
+export class TextEffect extends Effect{
+    Effect: PIXI.Text;
+    public addText(text:string){
+       this.Effect = new PIXI.Text(text);
+    }
+
+    //return the type.
+    public type() : string{
+        return "text";
+    }
+}
+
+//push an effect.
+export function addEffect(name:string | null = null, text:string | null = null, char:Character | null = null, position:{x:number,y:number} | null = null,
+styles: EffectStyle[] = null) {
+    //if both name and text are null, error.
+    if (name == null && text == null){
+        addMessage("Invalid effect: No target or name specified.");
+    }
+    let targetPosition : {x:number, y:number};
+
+    //char takes position.
+    if (char != null){
+        //find target.
+        targetPosition = char.Position;
+    } else if (position != null){
+        targetPosition = position;
+    } else {
+        addMessage("Invalid target!");
+        return;
+    }
+
+    //add x32 to them.
+    targetPosition.x = targetPosition.x * 32;
+    targetPosition.y = targetPosition.y * 32;
+
+    //and add to the list. Woo!
+    let effect;
+    if (name != null){
+        effect = new Effect(targetPosition);
+        effect.addEffect(name);
+    } else if (text != null) {
+        effect = new TextEffect(targetPosition);
+        effect.addText(text);
+    }
+    if (styles != null){
+        effect.Styles = styles;
+    } else {
+        effect.addStyle(null, null, null, 180, 0xee0000);
+    }
+    effect.render();
+    effects.push(effect);
 }
