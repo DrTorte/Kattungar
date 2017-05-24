@@ -7,6 +7,7 @@ export class Session{
     Id : number;
     Characters : Character[] =  []
     Players: User[] = [];
+    CurrentPlayer: User | null;
     Private: boolean;
     State: number;
     Name: string;

@@ -6,7 +6,7 @@ export class Player{
     Session: string;
     Connections: WebSocket[] = [];
 
-//construct a player with a random session attached.
+    //construct a player with a random session attached.
     constructor(name:string, id:number){
         this.Username = name;
         this.Session =  randomstring.generate();
@@ -14,18 +14,19 @@ export class Player{
     }
 }
 
-export class PlayerView{
+export class PlayerView {
     Id: number;
     Username: string;
     //the session is hidden here, because it's only suipposed to exist between the player and the server. no one should see them.
     constructor(player : Player){
+
         this.Id = player.Id;
         this.Username = player.Username;
     }
 }
 
 //this shows the session, but should only be called for itself.
-export class PlayerSelfView{
+export class PlayerSelfView {
     Id: number;
     Username: string;
     Session: string;

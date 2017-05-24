@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const datastore = require("./modules/datastore");
 const GameSession_1 = require("./models/GameSession");
-const Map_1 = require("./models/Map");
 const WebSocket = require('ws');
 class WsApp {
     constructor() {
@@ -31,7 +30,7 @@ class WsApp {
                         return;
                     }
                     let gameSession = datastore.findGame(result['gameId']);
-                    if (gameSession == null || gameSession.Players > 1) {
+                    if (gameSession == null || gameSession.Players.length > 1) {
                         error = { error: "Invalid game." };
                         ws.send(JSON.stringify(error));
                         return;
@@ -49,16 +48,14 @@ class WsApp {
                     ws.send(JSON.stringify({ message: "Connected to game session " + gameSession['Id'] }));
                     //if there's two players or more, advise and prepare and such.
                     if (gameSession.Players.length > 1) {
-                        gameSession.Map = new Map_1.Map("");
-                        gameSession.genCharacters();
-                        gameSession.State = 2; //started!
+                        gameSession.startGame();
                     }
                     //and now that the game session was created, send it along! Wiee!
                     let view = new GameSession_1.GameSessionView(gameSession);
                     for (let connection of gameSession.Connections) {
                         connection.send(JSON.stringify({ message: "Player " + player.Name + " connected!" }));
                         //do stuff to initailze the map here. for now just a flat map.
-                        connection.send(JSON.stringify({ sessionUpdate: view }));
+                        connection.send(JSON.stringify({ session: view, startGame: true }));
                     }
                 }
                 else if (result['type'] == "moveChar") {
@@ -78,9 +75,15 @@ class WsApp {
                         ws.send(JSON.stringify(error));
                         return;
                     }
+                    //make sure it is the player's turn.
+                    if (!session.CurrentPlayer || session.CurrentPlayer.Id != player.Id) {
+                        error = { error: "Not your turn." };
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
                     //now that that's done, find the character.
-                    let character = session.Characters.find(x => x.Id == result['charId'] && x.Owner == player.Id);
-                    if (character == null) {
+                    let character = session.Characters.find(x => x.Id == result['charId']);
+                    if (character == undefined || character.Owner != player.Id) {
                         error = { error: "Invalid character." };
                         ws.send(JSON.stringify(error));
                         return;
@@ -140,6 +143,12 @@ class WsApp {
                     let session = datastore.findGame(result['gameId']);
                     if (session == null) {
                         error = { error: "Invalid session." };
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    //make sure it is the player's turn.
+                    if (!session.CurrentPlayer || session.CurrentPlayer.Id != player.Id) {
+                        error = { error: "Not your turn." };
                         ws.send(JSON.stringify(error));
                         return;
                     }
@@ -203,6 +212,34 @@ class WsApp {
                             s.send(JSON.stringify({ characterUpdate: character }));
                             s.send(JSON.stringify({ characterUpdate: c }));
                         }
+                    }
+                }
+                else if (result['type'] == "endTurn") {
+                    //check for player and session existance.
+                    let player = datastore.findPlayer(result['player']);
+                    if (player == undefined) {
+                        error = { error: "Invalid player session." };
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    //find the session.
+                    let session = datastore.findGame(result['gameId']);
+                    if (session == undefined) {
+                        error = { error: "Invalid session." };
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    //confirm that it is the player's turn.
+                    //make sure it is the player's turn.
+                    if (!session.CurrentPlayer || session.CurrentPlayer.Id != player.Id) {
+                        error = { error: "Not your turn." };
+                        ws.send(JSON.stringify(error));
+                        return;
+                    }
+                    session.nextRound();
+                    let view = new GameSession_1.GameSessionView(session);
+                    for (let connection of session.Connections) {
+                        connection.send(JSON.stringify({ sessionUpdate: view }));
                     }
                 }
                 else {

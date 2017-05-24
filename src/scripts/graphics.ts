@@ -3,6 +3,7 @@ import { User } from './user';
 import { Session } from './session';
 import { Character } from './character';
 import { EffectStyle} from './effectStyle';
+import { SpriteContainer } from './datastore';
 
 import * as gameLogic from './gameLogic';
 import * as datastore from './datastore';
@@ -10,6 +11,7 @@ import * as PIXI from 'pixi.js';
 
 export let renderer = new PIXI.Application(1600,900, {backgroundColor: 0x1099bb});
 export let stage = new PIXI.Container();
+export let spriteHolder : SpriteHolder[] = [];
 
 export let messages : DisplayMessage[] = [];
 export let effects : Effect[] = [];
@@ -28,7 +30,7 @@ class DisplayMessage {
         this.Message.position.x = 10;
         this.Message.position.y = 10 + (32*messages.length);
         this.Text = message;
-        renderer.stage.addChild(this.Message);
+        addSprite(this.Message, 100);
     }
 }
 
@@ -85,12 +87,19 @@ export function init(){
                 }
             });
         });
+        //and now sort.
+        renderer.stage.children.sort(function(a : PIXI.Sprite, b : PIXI.Sprite){
+            //find the thing.
+            let sa = spriteHolder.find(x=>a==x.Sprite);
+            let sb = spriteHolder.find(x=>b==x.Sprite);
+            return (sa.LayerID -sb.LayerID);
+        })
     });
 }
 
 export function addMessage(message:string){
     let newMessage = new DisplayMessage(message);
-    this.messages.push(newMessage);
+    messages.push(newMessage);
 }
 
 export function drawTerrain(){
@@ -103,47 +112,51 @@ export function drawTerrain(){
         }
         item.x = element.X*32;
         item.y = element.Y*32;
-        renderer.stage.addChild(item);
+        addSprite(item, 0);
     });
 }
 
 //the intiial UI draw.
 export function drawUI(){
     //draw some UI, too!
-    renderer.stage.addChild(datastore.uiContainer.Name);
-    renderer.stage.addChild(datastore.uiContainer.Description);
-    renderer.stage.addChild(datastore.uiContainer.AP);
+    addSprite(datastore.uiContainer.Name, 100);
+    addSprite(datastore.uiContainer.Description, 100);
+    addSprite(datastore.uiContainer.AP, 100);
 
     //easier to track stuff here, if we have the functions called within the main body. :)
     datastore.uiContainer.Up.on("pointerdown", gameLogic.moveButton);
     datastore.uiContainer.Left.on("pointerdown", gameLogic.moveButton);
     datastore.uiContainer.Right.on("pointerdown", gameLogic.moveButton);
     datastore.uiContainer.Down.on("pointerdown", gameLogic.moveButton);
-    renderer.stage.addChild(datastore.uiContainer.Up);
-    renderer.stage.addChild(datastore.uiContainer.Left);
-    renderer.stage.addChild(datastore.uiContainer.Right);
-    renderer.stage.addChild(datastore.uiContainer.Down);
+    addSprite(datastore.uiContainer.Up, 100);
+    addSprite(datastore.uiContainer.Left, 100);
+    addSprite(datastore.uiContainer.Right, 100);
+    addSprite(datastore.uiContainer.Down, 100);
 
     datastore.uiContainer.AtkUp.on("pointerdown", gameLogic.atkButton);
     datastore.uiContainer.AtkLeft.on("pointerdown", gameLogic.atkButton);
     datastore.uiContainer.AtkRight.on("pointerdown", gameLogic.atkButton);
     datastore.uiContainer.AtkDown.on("pointerdown", gameLogic.atkButton);
-    renderer.stage.addChild(datastore.uiContainer.AtkUp);
-    renderer.stage.addChild(datastore.uiContainer.AtkLeft);
-    renderer.stage.addChild(datastore.uiContainer.AtkRight);
-    renderer.stage.addChild(datastore.uiContainer.AtkDown);
+    addSprite(datastore.uiContainer.AtkUp, 100);
+    addSprite(datastore.uiContainer.AtkLeft, 100);
+    addSprite(datastore.uiContainer.AtkRight, 100);
+    addSprite(datastore.uiContainer.AtkDown, 100);
+
+    datastore.uiContainer.EndTurn.on("pointerdown", gameLogic.endTurn);
+    addSprite(datastore.uiContainer.EndTurn, 100);
+
     //generate the Selector as well. Maybe more later.
 
     datastore.uiContainer.Selected = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == "UI_selector").Sprite);
     datastore.uiContainer.Selected.visible = false;
     datastore.uiContainer.Selected.tint= 0x7af5f5;
     datastore.uiContainer.Selected.alpha = 0.5;
-    renderer.stage.addChild(datastore.uiContainer.Selected);
+    addSprite(datastore.uiContainer.Selected, 100);
 
     datastore.uiContainer.Selector = new PIXI.Sprite(datastore.sprites.find(x=>x.Name == "UI_selector").Sprite);
     datastore.uiContainer.Selector.visible = false;
     datastore.uiContainer.Selector.alpha = 0.5;
-    renderer.stage.addChild(datastore.uiContainer.Selector);
+    addSprite(datastore.uiContainer.Selector, 100);
 }
 
 //update the UI. Primarily called when selecting a character.
@@ -153,7 +166,12 @@ export function updateUI(char: Character = null){
     datastore.uiContainer.Description.visible = (char != null);
     datastore.uiContainer.AP.visible = (char != null);
 
-    if (char == datastore.myGame.SelectedCharacter){
+    //if it's your turn, show end turn. otherwise do not.
+    if (datastore.myGame.CurrentPlayer){
+        datastore.uiContainer.EndTurn.visible = (datastore.myGame.CurrentPlayer.Id == datastore.myUser.Id);
+    }
+
+    if (datastore.myGame.SelectedCharacter && char == datastore.myGame.SelectedCharacter){
         datastore.uiContainer.Name.text = char.Name;
         datastore.uiContainer.Description.text = char.Description;
         datastore.uiContainer.AP.text = String(char.Stats.CurrentActionPoints) + " / " + String(char.Stats.FreshActionPoints);
@@ -208,7 +226,7 @@ export function drawCharacters(){
         });
 
         item.on('pointerdown', gameLogic.selectCharacter);
-        renderer.stage.addChild(item);
+        addSprite(item, 10);
         c.Sprite = item;
     }
 }
@@ -251,7 +269,7 @@ export class Effect{
         //simply add to renderer.
         this.Effect.position.x = this.StartPosition.x;
         this.Effect.position.y = this.StartPosition.y;
-        renderer.stage.addChild(this.Effect);
+        addSprite(this.Effect, 50);
     }
 }
 
@@ -307,4 +325,34 @@ styles: EffectStyle[] = null) {
     }
     effect.render();
     effects.push(effect);
+}
+
+//add a texture: A non interactive sprite.
+export function addTexture(name:string, position:{x,y}){
+    let sprite : SpriteContainer | undefined = datastore.sprites.find(x=>x.Name == name);
+    if (sprite == undefined){
+        //fail and just return for now.
+        return;
+    }
+    let spriteC : PIXI.Sprite = new PIXI.Sprite(sprite.Sprite);
+
+    spriteC.position.x = position.x*32;
+    spriteC.position.y = position.y*32;
+
+    addSprite(spriteC, 1);
+    renderer.stage.children.sort();
+}
+
+//this is used to keep things in order.
+export class SpriteHolder {
+    Sprite: PIXI.Sprite;
+    LayerID: number; //the higher, the closer to the screen.
+}
+
+export function addSprite(sprite: PIXI.Sprite, layerId: number) {
+    let spriteH = new SpriteHolder();
+    spriteH.Sprite = sprite;
+    spriteH.LayerID = layerId;
+    spriteHolder.push(spriteH);
+    renderer.stage.addChild(sprite);
 }

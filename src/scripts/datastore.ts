@@ -9,11 +9,6 @@ import * as graphics from './graphics';
 export let url = window.location.hostname;
 export let ws = new WebSocket("ws://" + url  + ":8080");
 
-
-export class Datastore {
-
-}
-
 export class UIContainer{
     Name: PIXI.Text = new PIXI.Text("");
     Description: PIXI.Text = new PIXI.Text("");
@@ -27,6 +22,8 @@ export class UIContainer{
     AtkLeft: PIXI.Text = new PIXI.Text("Atk Left");
     AtkRight: PIXI.Text = new PIXI.Text("Atk Right");
     AtkDown: PIXI.Text = new PIXI.Text("Atk Down");
+
+    EndTurn: PIXI.Text = new PIXI.Text("End Turn");
 
     Selector: PIXI.Sprite;
     Selected: PIXI.Sprite;
@@ -111,6 +108,12 @@ export class UIContainer{
         this.AtkDown.visible=false;
         this.AtkDown.y = y;
         this.AtkDown.x = x;
+
+        this.EndTurn.interactive = true;
+        this.EndTurn.buttonMode = true;
+        this.EndTurn.visible = false;
+        this.EndTurn.y = y+32;
+        this.EndTurn.x = 64;
     }
 }
 
@@ -133,13 +136,31 @@ export function updateSessions(sessions: Session[]){
     });
 }
 
-//update session value here.
-export function updateSession(session: Session){
+export function setSession(session: Session){
     myGame = session;
+    console.log("Session set!");
+    console.log(myGame);
+    if (myGame.CurrentPlayer && myGame.CurrentPlayer.Id == myUser.Id){
+        graphics.addMessage("Your turn!");
+    }   
+    graphics.updateUI();
 }
 
-//add a sprite.
-export function addSprite(name: string, sprite: PIXI.Texture){
+//update session value here.
+export function updateSession(session: Session){
+    if (session.CurrentPlayer){
+        myGame.CurrentPlayer = session.CurrentPlayer as User;
+    } else {
+        myGame.CurrentPlayer = null;
+    }
+    if (myGame.CurrentPlayer && myGame.CurrentPlayer.Id == myUser.Id){
+        graphics.addMessage("Your turn!");
+    }
+    myGame.State = session.State;
+}
+
+//create a sprite.
+export function createSpriteEntry(name: string, sprite: PIXI.Texture){
     let spriteC = new SpriteContainer();
     spriteC.Name = name;
     spriteC.Sprite = sprite;
@@ -147,7 +168,13 @@ export function addSprite(name: string, sprite: PIXI.Texture){
 }
 
 //sprite container for Pixi.
-class SpriteContainer{
+export class SpriteContainer{
     Name: string;
     Sprite: PIXI.Texture;
+}
+
+
+
+export class Datastore {
+
 }

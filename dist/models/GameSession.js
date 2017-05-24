@@ -1,10 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Map_1 = require("./Map");
 const Character_1 = require("./Character");
 const Player_1 = require("./Player");
 //a game session is where the majority of the game content resides.
 class GameSession {
     constructor(id, name, priv) {
+        this.Round = 1;
+        this.CurrentPlayer = null;
         this.Characters = [];
         this.Players = [];
         this.Connections = [];
@@ -59,7 +62,6 @@ class GameSession {
                 else {
                     c.Position.y = 1;
                 }
-                console.log(c.Position);
                 //check map okay, then check character okay.
                 if (!this.Map.checkPos(c.Position.x, c.Position.y)) {
                     positionOkay = false;
@@ -85,16 +87,49 @@ class GameSession {
         }
     }
     findCharacter(position, player) {
-        //if player is not specified, it is not a factor.
+        //scan for the location of characters.
         for (let c of this.Characters) {
-            console.log("X: " + c.Position.x + " Y: " + position.x);
-            console.log("X: " + c.Position.y + " Y: " + position.y);
             if (c.Position.x == position.x && c.Position.y == position.y) {
-                console.log(c);
                 return c;
             }
         }
         return null;
+    }
+    //start the game!
+    startGame() {
+        this.Map = new Map_1.Map("");
+        this.genCharacters();
+        //flip a coin to see who goes first.
+        this.CurrentPlayer = this.Players[Math.round(Math.random())];
+        this.State = 2; //started!
+    }
+    nextRound() {
+        this.Round++;
+        // set target player.
+        let target = this.Players.find(x => x != this.CurrentPlayer);
+        if (target == undefined) {
+            for (let c of this.Connections) {
+                c.send(JSON.stringify({ message: "Error progressing to next round! No player found." }));
+            }
+            return; //woops! Bad!
+        }
+        target = target;
+        this.CurrentPlayer = target;
+        //refresh all characters owned by current player.
+        for (let c of this.Characters) {
+            //only refresh the characters whom turn it is currently.
+            if (c.Owner != this.CurrentPlayer.Id) {
+                continue; //to next c.
+            }
+            //set action points to max, plus half of what remains, up to 1.5x action points.
+            c.Stats.CurrentActionPoints = Math.min(c.Stats.FreshActionPoints + (c.Stats.CurrentActionPoints / 2), c.Stats.FreshActionPoints * 1.5);
+            //other stuff here too. like reduce cds and such.
+            //when relevant, anyway.
+            for (let connection of this.Connections) {
+                connection.send(JSON.stringify({ characterUpdate: c }));
+            }
+        }
+        //and any other updates that need to happen here go here. such as ticking down environmental effects.
     }
 }
 exports.GameSession = GameSession;
@@ -111,6 +146,9 @@ class GameSessionView {
         this.Characters = session.Characters;
         for (let p of session.Players) {
             this.Players.push(new Player_1.PlayerView(p));
+        }
+        if (session.CurrentPlayer != null) {
+            this.CurrentPlayer = new Player_1.PlayerView(session.CurrentPlayer);
         }
     }
 }

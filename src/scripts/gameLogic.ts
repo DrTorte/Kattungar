@@ -87,3 +87,16 @@ export function selectCharacter(e){
     //show some ui info.
     graphics.updateUI(char);
 }
+
+export function endTurn(e){
+    if (datastore.myGame.CurrentPlayer && datastore.myGame.CurrentPlayer.Id == datastore.myUser.Id){
+        let sendData={
+            player: datastore.myUser.Session,
+            gameId: datastore.myGame.Id,
+            type:"endTurn"
+        };
+        datastore.ws.send(JSON.stringify(sendData));
+    } else {
+        graphics.addMessage("Not your turn, unable to end.");
+    }
+}

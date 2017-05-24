@@ -199,7 +199,6 @@ datastore.ws.onmessage = function(event){
         addError("Invalid data received.");
         return;
     }
-    console.log(wsData);
     if (wsData['message']){
         graphics.addMessage(wsData['message']);
     }
@@ -207,10 +206,26 @@ datastore.ws.onmessage = function(event){
         graphics.addMessage(wsData['error']);
         return;
     }
+    
     if (wsData['sessionUpdate']){
+        console.log("Session update.");
         datastore.updateSession(wsData['sessionUpdate'] as Session);
+        graphics.updateUI();
+    } 
+
+    if (wsData['startGame']){
         //and hide the other views for now.
         $("#mainBody").hide();
+        datastore.setSession(wsData['session'] as Session);
+
+        if(datastore.myGame.State == 4){
+            graphics.renderer.stage.removeChildren();
+            let text : PIXI.Text = new PIXI.Text("You win! Yay! Now refresh the page.");
+            text.x = 500;
+            text.y = 250;
+            graphics.addSprite(text, 150);
+        }
+
         if(datastore.myGame.State == 2){
             //wipe out current.
             graphics.renderer.stage.removeChildren();
@@ -219,14 +234,14 @@ datastore.ws.onmessage = function(event){
             let text : PIXI.Text = new PIXI.Text("Players:");
             text.x = 1056;
             text.y = 32;
-            graphics.renderer.stage.addChild(text)
+            graphics.addSprite(text, 100)
 
             let y = 64;
             for (var p of datastore.myGame.Players){
                 text = new PIXI.Text(p.Username);
                 text.x = 1056;
                 text.y = y;
-                graphics.renderer.stage.addChild(text);
+                graphics.addSprite(text, 100);
                 y += 32;
             }
 
@@ -238,19 +253,21 @@ datastore.ws.onmessage = function(event){
             graphics.drawUI();
 
         }
-        if(datastore.myGame.State == 4){
-            graphics.renderer.stage.removeChildren();
-            let text : PIXI.Text = new PIXI.Text("You win! Yay! Now refresh the page.");
-            text.x = 500;
-            text.y = 250;
-            graphics.renderer.stage.addChild(text);
-        }
-    } 
+    }
 
     if (wsData['characterUpdate']){
         //find the character.
         let char = wsData['characterUpdate'] as Character;
-        gameLogic.updateCharacter(char);
+
+        //if character is dead, hide it, and leave a splash of blood.
+        if (char.Stats.Alive == false){
+            //kill it! Wiee!
+            let chara = datastore.myGame.Characters.find(x=>x.Id == char.Id);
+            chara.Sprite.visible = false; //hide.
+            graphics.addTexture("Blood", chara.Position);
+        } else {
+            gameLogic.updateCharacter(char);
+        }
     } 
     
     if (wsData['effect']){
@@ -269,18 +286,19 @@ datastore.ws.onmessage = function(event){
 
 function prepGame(){
     $("#canvas").append(graphics.renderer.view);
-    datastore.addSprite("Floor", PIXI.Texture.fromImage('/assets/floor.png'));
-    datastore.addSprite("Wall", PIXI.Texture.fromImage('/assets/wall.png'));
-    datastore.addSprite("Ghoul", PIXI.Texture.fromImage('/assets/ghoul.png'));
-    datastore.addSprite("Human", PIXI.Texture.fromImage('/assets/human.png'));
-    datastore.addSprite("Orc", PIXI.Texture.fromImage('/assets/orc.png'));
-    datastore.addSprite("Troll", PIXI.Texture.fromImage('/assets/troll.png'));
-    datastore.addSprite("UI_selector", PIXI.Texture.fromImage('/assets/ui/select.png'));
-    datastore.addSprite("Hit", PIXI.Texture.fromImage('/assets/ui/slash.png'));
+    datastore.createSpriteEntry("Floor", PIXI.Texture.fromImage('/assets/floor.png'));
+    datastore.createSpriteEntry("Wall", PIXI.Texture.fromImage('/assets/wall.png'));
+    datastore.createSpriteEntry("Ghoul", PIXI.Texture.fromImage('/assets/ghoul.png'));
+    datastore.createSpriteEntry("Human", PIXI.Texture.fromImage('/assets/human.png'));
+    datastore.createSpriteEntry("Orc", PIXI.Texture.fromImage('/assets/orc.png'));
+    datastore.createSpriteEntry("Troll", PIXI.Texture.fromImage('/assets/troll.png'));
+    datastore.createSpriteEntry("Blood", PIXI.Texture.fromImage('/assets/blood.png'));
+    datastore.createSpriteEntry("UI_selector", PIXI.Texture.fromImage('/assets/ui/select.png'));
+    datastore.createSpriteEntry("Hit", PIXI.Texture.fromImage('/assets/ui/slash.png'));
 
     //add "loading text"
     let basicText = new PIXI.Text("Awaiting other player...");
     basicText.x = 30;
     basicText.y = 30;
-    graphics.renderer.stage.addChild(basicText);
+    graphics.addSprite(basicText, 100);
 }
