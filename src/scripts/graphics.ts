@@ -89,7 +89,7 @@ export function init(){
         });
         //and now sort.
         renderer.stage.children.sort(function(a : PIXI.Sprite, b : PIXI.Sprite){
-            //find the thing.
+            //find the holders and sort appropriately.
             let sa = spriteHolder.find(x=>a==x.Sprite);
             let sb = spriteHolder.find(x=>b==x.Sprite);
             return (sa.LayerID -sb.LayerID);
