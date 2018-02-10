@@ -1,3 +1,5 @@
+# Depracated for now
+
 # Kattungar
 
 Kattungar is a turn based, party-based RPG. The server side is written with Node.js and WS, and the front end is written with Pixi and TypeScript. In the near future, I will be migrating the HTTP requests over to WS as well. The API functionality wasn't really something that ended up being terribly useful.
